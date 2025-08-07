@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Reasoning Training Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 200px);
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .config-card {
+            flex: 0 0 auto;
+        }
+
+        .training-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .output-card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: #4a5568;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+        }
+
+        .multi-response-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .response-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #cbd5e0;
+            transition: all 0.3s ease;
+        }
+
+        .response-card.winner {
+            border-left-color: #48bb78;
+            background: linear-gradient(135deg, #f0fff4 0%, #f7fafc 100%);
+            transform: scale(1.02);
+        }
+
+        .response-card.runner-up {
+            border-left-color: #ed8936;
+            background: linear-gradient(135deg, #fffaf0 0%, #f7fafc 100%);
+        }
+
+        .response-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .provider-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .score-badge {
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .score-badge.high {
+            background: #48bb78;
+            color: white;
+        }
+
+        .score-badge.medium {
+            background: #ed8936;
+            color: white;
+        }
+
+        .score-badge.low {
+            background: #f56565;
+            color: white;
+        }
+
+        .model-name-section {
+            background: linear-gradient(135deg, #805ad5 0%, #553c9a 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .model-name-input {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 10px 5px;
+            text-align: center;
+        }
+
+        .model-name-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .response-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 4px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .comparison-winner {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .training-data {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .training-item {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .training-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .training-item h4 {
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .training-item p {
+            color: #4a5568;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .weight-indicator {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .weight-positive {
+            background: #48bb78;
+        }
+
+        .weight-negative {
+            background: #f56565;
+        }
+
+        .weight-neutral {
+            background: #a0aec0;
+        }
+
+        .output-map {
+            flex: 1;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            background: #f7fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            position: relative;
+        }
+
+        .output-content {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .reasoning-cycle {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .cycle-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .status-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: white;
+            font-weight: 600;
+            display: none;
+        }
+
+        .status-success {
+            background: #48bb78;
+        }
+
+        .status-error {
+            background: #f56565;
+        }
+
+        .status-processing {
+            background: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 LLM Reasoning Training Interface</h1>
+            <p>Universal Judgment Law Implementation</p>
+        </div>
+
+        <div class="main-grid">
+            <div class="left-panel">
+                <!-- Configuration Card -->
+                <div class="card config-card">
+                    <h3>🔧 Multi-LLM Configuration</h3>
+                    
+                    <!-- Model Name Section -->
+                    <div class="model-name-section">
+                        <h4>🏷️ Training Model Identity</h4>
+                        <input type="text" class="model-name-input" id="modelName" 
+                               placeholder="Enter model name..." value="ReasoningMaster-v1">
+                        <input type="text" class="model-name-input" id="modelVersion" 
+                               placeholder="Version..." value="1.0.0">
+                        <p style="font-size: 12px; margin-top: 8px; opacity: 0.8;">
+                            This will be your trained model's identity for export
+                        </p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>🤖 Select Multiple Providers (Hold Ctrl/Cmd)</label>
+                        <select id="providers" multiple size="6">
+                            <option value="openai" selected>OpenAI (GPT-4)</option>
+                            <option value="anthropic" selected>Anthropic (Claude)</option>
+                            <option value="google" selected>Google (Gemini)</option>
+                            <option value="cohere">Cohere</option>
+                            <option value="huggingface">HuggingFace</option>
+                            <option value="local">Local Model</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="apiKeys">API Keys (JSON format)</label>
+                        <textarea id="apiKeys" rows="4" placeholder='{
+  "openai": "sk-...",
+  "anthropic": "sk-ant-...",
+  "google": "AIza..."
+}'></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="queryInput">Query Input</label>
+                        <textarea id="queryInput" rows="3" placeholder="Enter your question or prompt..."></textarea>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn" onclick="processMultiQuery()">🚀 Process Multi-LLM</button>
+                        <button class="btn btn-secondary" onclick="trainCompositeModel()">🎯 Train Composite Model</button>
+                    </div>
+                </div>
+
+                <!-- Training Data Card -->
+                <div class="card training-card">
+                    <h3>📚 Training Data Repository</h3>
+                    <div class="button-group">
+                        <button class="btn btn-export" onclick="exportTrainingData()">💾 Export to Desktop</button>
+                        <button class="btn btn-secondary" onclick="loadTrainingData()">📁 Load Data</button>
+                        <button class="btn" onclick="clearTrainingData()">🗑️ Clear All</button>
+                    </div>
+                    
+                    <div class="training-data" id="trainingData">
+                        <!-- Training items will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Map -->
+            <div class="card output-card">
+                <h3>🗺️ Multi-LLM Reasoning & Best Response Selection</h3>
+                <div class="output-map" id="outputMap">
+                    <div class="output-content" id="outputContent">
+                        <div style="text-align: center; color: #a0aec0;">
+                            <h4>Ready to process multi-LLM queries</h4>
+                            <p>Configure multiple providers and submit a query to see comparative reasoning</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-export" onclick="exportCompositeModel()">🏆 Export Trained Model</button>
+                    <button class="btn btn-export" onclick="exportMultiResponseMap()">📋 Export Response Map</button>
+                    <button class="btn" onclick="clearOutput()">🧹 Clear Output</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-indicator" id="statusIndicator"></div>
+
+    <script>
+        // Multi-LLM Reasoning Pipeline Implementation
+        let trainingRepository = [];
+        let reasoningHistory = [];
+        let multiResponseHistory = [];
+        let compositeModelData = [];
+        let currentProviders = [];
+        let currentApiKeys = {};
+
+        // Initialize the interface
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStoredData();
+            updateTrainingDisplay();
+        });
+
+        // Process query through multiple LLM providers
+        async function processMultiQuery() {
+            const providers = Array.from(document.getElementById('providers').selectedOptions)
+                                   .map(option => option.value);
+            const apiKeysText = document.getElementById('apiKeys').value.trim();
+            const query = document.getElementById('queryInput').value.trim();
+            const modelName = document.getElementById('modelName').value.trim() || 'ReasoningMaster-v1';
+            const modelVersion = document.getElementById('modelVersion').value.trim() || '1.0.0';
+
+            if (providers.length === 0) {
+                showStatus('Please select at least one LLM provider', 'error');
+                return;
+            }
+
+            if (!query) {
+                showStatus('Please enter a query', 'error');
+                return;
+            }
+
+            // Parse API keys
+            let apiKeys = {};
+            if (apiKeysText) {
+                try {
+                    apiKeys = JSON.parse(apiKeysText);
+                } catch (e) {
+                    showStatus('Invalid API keys JSON format', 'error');
+                    return;
+                }
+            }
+
+            currentProviders = providers;
+            currentApiKeys = apiKeys;
+
+            showStatus(`Processing query through ${providers.length} LLM providers...`, 'processing');
+
+            try {
+                // Process query through multiple providers simultaneously
+                const multiResponse = await processMultiProviderQuery(query, providers, apiKeys, modelName, modelVersion);
+                
+                // Display multi-response comparison
+                displayMultiResponse(multiResponse);
+                
+                // Store training data from best response
+                storeCompositeTrainingData(multiResponse);
+                
+                // Update displays
+                updateTrainingDisplay();
+                
+                showStatus(`Multi-LLM processing complete! Winner: ${multiResponse.winner.provider}`, 'success');
+                
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Process query through multiple providers
+        async function processMultiProviderQuery(query, providers, apiKeys, modelName, modelVersion) {
+            const responses = [];
+            
+            // Process each provider concurrently
+            const promises = providers.map(async (provider) => {
+                try {
+                    const cycle = await simulateReasoningPipeline(query, provider, apiKeys[provider] || 'demo-key');
+                    return { provider, cycle, error: null };
+                } catch (error) {
+                    return { provider, cycle: null, error: error.message };
+                }
+            });
+
+            const results = await Promise.all(promises);
+            
+            // Calculate composite scores and determine winner
+            const scoredResponses = results
+                .filter(result => result.cycle !== null)
+                .map(result => {
+                    const cycle = result.cycle;
+                    const compositeScore = calculateCompositeScore(cycle);
+                    return {
+                        provider: result.provider,
+                        cycle: cycle,
+                        compositeScore: compositeScore,
+                        ranking: 0 // Will be set after sorting
+                    };
+                });
+
+            // Sort by composite score (highest first)
+            scoredResponses.sort((a, b) => b.compositeScore - a.compositeScore);
+            
+            // Assign rankings
+            scoredResponses.forEach((response, index) => {
+                response.ranking = index + 1;
+            });
+
+            const multiResponse = {
+                id: Date.now(),
+                timestamp: new Date(),
+                query: query,
+                modelName: modelName,
+                modelVersion: modelVersion,
+                providers: providers,
+                responses: scoredResponses,
+                winner: scoredResponses[0] || null,
+                runnerUp: scoredResponses[1] || null,
+                errors: results.filter(r => r.error).map(r => ({ provider: r.provider, error: r.error }))
+            };
+
+            multiResponseHistory.push(multiResponse);
+            return multiResponse;
+        }
+
+        // Calculate composite score for ranking responses
+        function calculateCompositeScore(cycle) {
+            const weights = {
+                reasoningQuality: 0.25,
+                truthfulness: 0.30,
+                helpfulness: 0.25,
+                ethicalAlignment: 0.20
+            };
+
+            const baseScore = (
+                cycle.judgment.reasoningQuality * weights.reasoningQuality +
+                cycle.judgment.truthfulness * weights.truthfulness +
+                cycle.judgment.helpfulness * weights.helpfulness +
+                cycle.judgment.ethicalAlignment * weights.ethicalAlignment
+            );
+
+            // Bonus for high confidence and logical consistency
+            const confidenceBonus = cycle.effect.confidence * 0.1;
+            const consistencyBonus = cycle.reaction.logicalConsistency * 0.1;
+
+            // Penalty for negative moral weight
+            const moralPenalty = cycle.judgment.moralWeight < 0 ? Math.abs(cycle.judgment.moralWeight) * 0.05 : 0;
+
+            return Math.min(1.0, Math.max(0.0, baseScore + confidenceBonus + consistencyBonus - moralPenalty));
+        }
+
+        // Display multi-response comparison
+        function displayMultiResponse(multiResponse) {
+            const outputContent = document.getElementById('outputContent');
+            
+            let html = `
+                <div class="reasoning-cycle">
+                    <h4>🏆 Multi-LLM Response Analysis - ${multiResponse.modelName} v${multiResponse.modelVersion}</h4>
+                    <p><strong>Query:</strong> ${multiResponse.query}</p>
+                    <p><strong>Providers:</strong> ${multiResponse.providers.join(', ')} | <strong>Time:</strong> ${multiResponse.timestamp.toLocaleString()}</p>
+            `;
+
+            if (multiResponse.winner) {
+                html += `
+                    <div class="comparison-winner">
+                        🥇 WINNER: ${multiResponse.winner.provider.toUpperCase()} 
+                        (Score: ${(multiResponse.winner.compositeScore * 100).toFixed(1)}%)
+                    </div>
+                `;
+            }
+
+            html += '<div class="multi-response-container">';
+
+            multiResponse.responses.forEach((response, index) => {
+                const cycle = response.cycle;
+                const isWinner = index === 0;
+                const isRunnerUp = index === 1;
+                
+                const cardClass = isWinner ? 'response-card winner' : 
+                                 isRunnerUp ? 'response-card runner-up' : 'response-card';
+                
+                const scoreClass = response.compositeScore > 0.8 ? 'high' :
+                                  response.compositeScore > 0.6 ? 'medium' : 'low';
+
+                html += `
+                    <div class="${cardClass}">
+                        <div class="response-header">
+                            <span class="provider-badge">${response.provider.toUpperCase()}</span>
+                            <span class="score-badge ${scoreClass}">Score: ${(response.compositeScore * 100).toFixed(1)}%</span>
+                            ${isWinner ? '<span style="margin-left: 8px;">🥇</span>' : ''}
+                            ${isRunnerUp ? '<span style="margin-left: 8px;">🥈</span>' : ''}
+                        </div>
+                        
+                        <div class="response-metrics">
+                            <div class="metric">
+                                <strong>Quality</strong><br>
+                                ${(cycle.judgment.reasoningQuality * 100).toFixed(0)}%
+                            </div>
+                            <div class="metric">
+                                <strong>Truth</strong><br>
+                                ${(cycle.judgment.truthfulness * 100).toFixed(0)}%
+                            </div>
+                            <div class="metric">
+                                <strong>Helpful</strong><br>
+                                ${(cycle.judgment.helpfulness * 100).toFixed(0)}%
+                            </div>
+                            <div class="metric">
+                                <strong>Ethics</strong><br>
+                                ${(cycle.judgment.ethicalAlignment * 100).toFixed(0)}%
+                            </div>
+                        </div>
+                        
+                        <div style="font-size: 12px; margin-bottom: 8px;">
+                            <strong>Confidence:</strong> ${(cycle.effect.confidence * 100).toFixed(1)}% | 
+                            <strong>Consistency:</strong> ${(cycle.reaction.logicalConsistency * 100).toFixed(1)}% |
+                            <strong>Moral Weight:</strong> 
+                            <span class="weight-indicator weight-${cycle.judgment.overallEvaluation === 'good' ? 'positive' : 
+                                                                  cycle.judgment.overallEvaluation === 'bad' ? 'negative' : 'neutral'}">
+                                ${cycle.judgment.moralWeight.toFixed(2)}
+                            </span>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-size: 13px;">
+                            <strong>Response:</strong> ${cycle.action.llmResponse}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div></div>';
+            
+            if (multiResponse.errors.length > 0) {
+                html += '<div style="margin-top: 15px; padding: 10px; background: #fed7d7; border-radius: 6px; color: #c53030;">';
+                html += '<strong>Errors:</strong><ul>';
+                multiResponse.errors.forEach(error => {
+                    html += `<li>${error.provider}: ${error.error}</li>`;
+                });
+                html += '</ul></div>';
+            }
+
+            outputContent.innerHTML = html;
+        }
+
+        // Store composite training data
+        function storeCompositeTrainingData(multiResponse) {
+            if (!multiResponse.winner) return;
+
+            const winnerCycle = multiResponse.winner.cycle;
+            const compositeItem = {
+                id: multiResponse.id,
+                timestamp: multiResponse.timestamp,
+                modelName: multiResponse.modelName,
+                modelVersion: multiResponse.modelVersion,
+                input: multiResponse.query,
+                winnerProvider: multiResponse.winner.provider,
+                winnerScore: multiResponse.winner.compositeScore,
+                allResponses: multiResponse.responses.map(r => ({
+                    provider: r.provider,
+                    score: r.compositeScore,
+                    ranking: r.ranking,
+                    moralWeight: r.cycle.judgment.moralWeight
+                })),
+                reasoning: winnerCycle,
+                labels: {
+                    quality: winnerCycle.judgment.reasoningQuality,
+                    truthfulness: winnerCycle.judgment.truthfulness,
+                    helpfulness: winnerCycle.judgment.helpfulness,
+                    ethicalAlignment: winnerCycle.judgment.ethicalAlignment
+                },
+                compositeScore: multiResponse.winner.compositeScore,
+                moralWeight: winnerCycle.judgment.moralWeight,
+                evaluation: winnerCycle.judgment.overallEvaluation,
+                consensusStrength: multiResponse.responses.length
+            };
+            
+            compositeModelData.push(compositeItem);
+            trainingRepository.push(compositeItem);
+            saveToStorage();
+        }
+
+        // Simulate the reasoning pipeline
+        async function simulateReasoningPipeline(query, provider, apiKey) {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Create reasoning cycle
+            const reasoningCycle = {
+                id: Date.now(),
+                timestamp: new Date(),
+                query: query,
+                provider: provider,
+                
+                // Step 1: Intention
+                intention: {
+                    reasoningGoal: classifyQuery(query),
+                    complexity: assessComplexity(query),
+                    domain: identifyDomain(query)
+                },
+                
+                // Step 2: Cause
+                cause: {
+                    premises: extractPremises(query),
+                    constraints: identifyConstraints(query)
+                },
+                
+                // Step 3: Action
+                action: {
+                    reasoningSteps: generateReasoningSteps(query),
+                    llmResponse: await simulateLLMResponse(query, provider)
+                },
+                
+                // Step 4: Reaction (Universal Laws)
+                reaction: {
+                    logicalConsistency: Math.random() * 0.4 + 0.6, // 0.6-1.0
+                    informationConservation: true,
+                    universalConstraints: ['non-contradiction', 'identity', 'excluded-middle']
+                },
+                
+                // Step 5: Effect
+                effect: {
+                    confidence: Math.random() * 0.3 + 0.7,
+                    completeness: Math.random() * 0.4 + 0.6,
+                    reasoningWeight: Math.random() * 2 + 1
+                },
+                
+                // Step 6: Judgment
+                judgment: {
+                    reasoningQuality: Math.random() * 0.4 + 0.6,
+                    truthfulness: Math.random() * 0.3 + 0.7,
+                    helpfulness: Math.random() * 0.4 + 0.6,
+                    ethicalAlignment: Math.random() * 0.2 + 0.8,
+                    overallEvaluation: null,
+                    moralWeight: 0
+                }
+            };
+
+            // Calculate overall evaluation and moral weight
+            const avgScore = (reasoningCycle.judgment.reasoningQuality + 
+                            reasoningCycle.judgment.truthfulness + 
+                            reasoningCycle.judgment.helpfulness + 
+                            reasoningCycle.judgment.ethicalAlignment) / 4;
+            
+            reasoningCycle.judgment.overallEvaluation = avgScore > 0.75 ? 'good' : 
+                                                       avgScore < 0.4 ? 'bad' : 'neutral';
+            
+            reasoningCycle.judgment.moralWeight = reasoningCycle.effect.reasoningWeight * 
+                (reasoningCycle.judgment.overallEvaluation === 'good' ? 1 : 
+                 reasoningCycle.judgment.overallEvaluation === 'bad' ? -1 : 0);
+
+            reasoningHistory.push(reasoningCycle);
+            return reasoningCycle;
+        }
+
+        // Display reasoning cycle in output map
+        function displayReasoningCycle(cycle) {
+            const outputContent = document.getElementById('outputContent');
+            
+            const cycleDiv = document.createElement('div');
+            cycleDiv.className = 'reasoning-cycle';
+            cycleDiv.innerHTML = `
+                <h4>🔄 Reasoning Cycle ${cycle.id}</h4>
+                <p><strong>Query:</strong> ${cycle.query}</p>
+                <p><strong>Provider:</strong> ${cycle.provider} | <strong>Time:</strong> ${cycle.timestamp.toLocaleString()}</p>
+                
+                <div class="cycle-step">
+                    <div class="step-number">1</div>
+                    <div>
+                        <strong>Intention:</strong> ${cycle.intention.reasoningGoal} 
+                        (${cycle.intention.complexity} complexity, ${cycle.intention.domain} domain)
+                    </div>
+                </div>
+                
+                <div class="cycle-step">
+                    <div class="step-number">2</div>
+                    <div><strong>Cause:</strong> ${cycle.cause.premises.length} premises identified</div>
+                </div>
+                
+                <div class="cycle-step">
+                    <div class="step-number">3</div>
+                    <div><strong>Action:</strong> ${cycle.action.reasoningSteps.length} reasoning steps executed</div>
+                </div>
+                
+                <div class="cycle-step">
+                    <div class="step-number">4</div>
+                    <div><strong>Reaction:</strong> Logical consistency: ${(cycle.reaction.logicalConsistency * 100).toFixed(1)}%</div>
+                </div>
+                
+                <div class="cycle-step">
+                    <div class="step-number">5</div>
+                    <div><strong>Effect:</strong> Confidence: ${(cycle.effect.confidence * 100).toFixed(1)}%, Weight: ${cycle.effect.reasoningWeight.toFixed(2)}</div>
+                </div>
+                
+                <div class="cycle-step">
+                    <div class="step-number">6</div>
+                    <div>
+                        <strong>Judgment:</strong> ${cycle.judgment.overallEvaluation.toUpperCase()}
+                        <span class="weight-indicator weight-${cycle.judgment.overallEvaluation === 'good' ? 'positive' : 
+                                                              cycle.judgment.overallEvaluation === 'bad' ? 'negative' : 'neutral'}">
+                            Weight: ${cycle.judgment.moralWeight.toFixed(2)}
+                        </span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 10px; padding: 10px; background: #f0f4f8; border-radius: 6px;">
+                    <strong>LLM Response:</strong> ${cycle.action.llmResponse}
+                </div>
+            `;
+            
+            outputContent.innerHTML = '';
+            outputContent.appendChild(cycleDiv);
+        }
+
+        // Store training data
+        function storeTrainingData(cycle) {
+            const trainingItem = {
+                id: cycle.id,
+                timestamp: cycle.timestamp,
+                input: cycle.query,
+                provider: cycle.provider,
+                reasoning: cycle,
+                labels: {
+                    quality: cycle.judgment.reasoningQuality,
+                    truthfulness: cycle.judgment.truthfulness,
+                    helpfulness: cycle.judgment.helpfulness,
+                    ethicalAlignment: cycle.judgment.ethicalAlignment
+                },
+                moralWeight: cycle.judgment.moralWeight,
+                evaluation: cycle.judgment.overallEvaluation
+            };
+            
+            trainingRepository.push(trainingItem);
+            saveToStorage();
+        }
+
+        // Update training data display
+        function updateTrainingDisplay() {
+            const container = document.getElementById('trainingData');
+            
+            if (trainingRepository.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #a0aec0; padding: 20px;">No training data yet. Process some queries to build your dataset.</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            trainingRepository.slice(-10).reverse().forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'training-item';
+                itemDiv.innerHTML = `
+                    <h4>📝 Training Sample ${item.id}</h4>
+                    <p><strong>Input:</strong> ${item.input.substring(0, 100)}${item.input.length > 100 ? '...' : ''}</p>
+                    <p><strong>Provider:</strong> ${item.provider} | <strong>Evaluation:</strong> ${item.evaluation}</p>
+                    <p><strong>Quality Metrics:</strong> 
+                        Q: ${(item.labels.quality * 100).toFixed(0)}% | 
+                        T: ${(item.labels.truthfulness * 100).toFixed(0)}% | 
+                        H: ${(item.labels.helpfulness * 100).toFixed(0)}% | 
+                        E: ${(item.labels.ethicalAlignment * 100).toFixed(0)}%
+                    </p>
+                    <span class="weight-indicator weight-${item.evaluation === 'good' ? 'positive' : 
+                                                          item.evaluation === 'bad' ? 'negative' : 'neutral'}">
+                        Moral Weight: ${item.moralWeight.toFixed(2)}
+                    </span>
+                `;
+                container.appendChild(itemDiv);
+            });
+        }
+
+        // Export training data to desktop
+        function exportTrainingData() {
+            if (trainingRepository.length === 0) {
+                showStatus('No training data to export', 'error');
+                return;
+            }
+            
+            const data = {
+                exportTimestamp: new Date().toISOString(),
+                totalSamples: trainingRepository.length,
+                trainingData: trainingRepository,
+                metadata: {
+                    framework: 'Universal Judgment Law LLM Training',
+                    version: '1.0',
+                    description: 'Training data generated from LLM reasoning cycles'
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `llm_training_data_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus(`Exported ${trainingRepository.length} training samples to desktop`, 'success');
+        }
+
+        // Export output map
+        function exportOutputMap() {
+            if (reasoningHistory.length === 0) {
+                showStatus('No reasoning cycles to export', 'error');
+                return;
+            }
+            
+            const data = {
+                exportTimestamp: new Date().toISOString(),
+                totalCycles: reasoningHistory.length,
+                reasoningCycles: reasoningHistory,
+                metadata: {
+                    framework: 'Universal Judgment Law Reasoning Map',
+                    version: '1.0'
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `reasoning_map_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus(`Exported ${reasoningHistory.length} reasoning cycles to desktop`, 'success');
+        }
+
+        // Train model function
+        async function trainModel() {
+            if (trainingRepository.length < 5) {
+                showStatus('Need at least 5 training samples to train model', 'error');
+                return;
+            }
+            
+            showStatus('Training model on reasoning data...', 'processing');
+            
+            // Simulate training process
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            const goodSamples = trainingRepository.filter(item => item.evaluation === 'good').length;
+            const totalWeight = trainingRepository.reduce((sum, item) => sum + Math.abs(item.moralWeight), 0);
+            
+            showStatus(`Model trained on ${trainingRepository.length} samples (${goodSamples} positive, weight: ${totalWeight.toFixed(2)})`, 'success');
+        }
+
+        // Load training data
+        function loadTrainingData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (data.trainingData && Array.isArray(data.trainingData)) {
+                                trainingRepository = [...trainingRepository, ...data.trainingData];
+                                updateTrainingDisplay();
+                                saveToStorage();
+                                showStatus(`Loaded ${data.trainingData.length} training samples`, 'success');
+                            } else {
+                                showStatus('Invalid training data format', 'error');
+                            }
+                        } catch (error) {
+                            showStatus('Error parsing training data file', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        // Clear functions
+        function clearTrainingData() {
+            if (confirm('Are you sure you want to clear all training data?')) {
+                trainingRepository = [];
+                updateTrainingDisplay();
+                saveToStorage();
+                showStatus('Training data cleared', 'success');
+            }
+        }
+
+        function clearOutput() {
+            document.getElementById('outputContent').innerHTML = `
+                <div style="text-align: center; color: #a0aec0;">
+                    <h4>Output cleared</h4>
+                    <p>Process a new query to see reasoning cycles</p>
+                </div>
+            `;
+            reasoningHistory = [];
+        }
+
+        // Utility functions
+        function showStatus(message, type) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.textContent = message;
+            indicator.className = `status-indicator status-${type}`;
+            indicator.style.display = 'block';
+            
+            setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 3000);
+        }
+
+        function saveToStorage() {
+            try {
+                const data = {
+                    trainingRepository,
+                    reasoningHistory
+                };
+                // Note: Using variables instead of localStorage for Claude.ai compatibility
+                window.appData = data;
+            } catch (e) {
+                console.warn('Could not save to storage');
+            }
+        }
+
+        function loadStoredData() {
+            try {
+                if (window.appData) {
+                    trainingRepository = window.appData.trainingRepository || [];
+                    reasoningHistory = window.appData.reasoningHistory || [];
+                }
+            } catch (e) {
+                console.warn('Could not load from storage');
+            }
+        }
+
+        // Helper functions for reasoning simulation
+        function classifyQuery(query) {
+            if (query.includes('?')) return 'question-answering';
+            if (query.includes('explain') || query.includes('how')) return 'explanation';
+            if (query.includes('compare') || query.includes('versus')) return 'comparison';
+            return 'general-reasoning';
+        }
+
+        function assessComplexity(query) {
+            const words = query.split(' ').length;
+            return words > 20 ? 'high' : words > 10 ? 'medium' : 'low';
+        }
+
+        function identifyDomain(query) {
+            const domains = {
+                'ethics': ['ethical', 'moral', 'right', 'wrong', 'should'],
+                'science': ['scientific', 'research', 'study', 'hypothesis'],
+                'technology': ['AI', 'algorithm', 'computer', 'software'],
+                'philosophy': ['philosophy', 'meaning', 'existence', 'consciousness']
+            };
+            
+            for (const [domain, keywords] of Object.entries(domains)) {
+                if (keywords.some(keyword => query.toLowerCase().includes(keyword))) {
+                    return domain;
+                }
+            }
+            return 'general';
+        }
+
+        function extractPremises(query) {
+            // Simulate premise extraction
+            return query.split('.').filter(s => s.trim().length > 0);
+        }
+
+        function identifyConstraints(query) {
+            return ['logical-consistency', 'factual-accuracy', 'relevance'];
+        }
+
+        function generateReasoningSteps(query) {
+            return [
+                'analyze-query',
+                'identify-key-concepts',
+                'gather-relevant-information',
+                'apply-logical-reasoning',
+                'synthesize-conclusion'
+            ];
+        }
+
+        async function simulateLLMResponse(query, provider) {
+            // Simulate different provider responses
+            const responses = {
+                'openai': `GPT-4 analysis: This query requires careful consideration of ${query.split(' ').length} concepts...`,
+                'anthropic': `Claude's reasoning: Based on the query structure, I need to examine...`,
+                'google': `Gemini response: The multi-modal analysis suggests...`,
+                'local': `Local model output: Processing with limited context...`
+            };
+            
+            return responses[provider] || `${provider} response to: "${query.substring(0, 50)}..."`;
+        }
+    </script>
+</body>
+  </html>
